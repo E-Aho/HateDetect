@@ -1,0 +1,14 @@
+pandas>=1.4.2
+numpy>=1.22.4
+requests>=2.27.0
+transformers>=4.20.0
+scipy>=1.8.1
+setuptools>=62.3.0
+
+
+# MacOS and Windows TensorFlow versions are different, install required varies
+# Install TF >= 2.8
+#NB: Symspell requires Rust
+ekphrasis>=0.5.4
+symspellpy>=6.7.6
+pytest>=7.1.2
