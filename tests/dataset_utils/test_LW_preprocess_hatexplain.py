@@ -3,15 +3,15 @@ import unittest
 import pytest
 
 from datasets import get_hateplain_df, get_raw_df
-from src.dataset_utils.constants import BASE_AFRICAN_SLUR, BASE_ASIAN_SLUR, BASE_ARAB_SLUR, BASE_CAUCASIAN_SLUR, \
+from src.dataset_utils.LW_constants import BASE_AFRICAN_SLUR, BASE_ASIAN_SLUR, BASE_ARAB_SLUR, BASE_CAUCASIAN_SLUR, \
     BASE_HISPANIC_SLUR, BASE_HOMOSEXUAL_SLUR, BASE_JEWISH_SLUR, BASE_MUSLIM_SLUR, BASE_WOMAN_SLUR, BASE_REFUGEE_SLUR
 from src.dataset_utils.preprocess_hatexplain import preprocess_hatexplain_df
 
 from src.dataset_utils.string_preprocessing import clean_text, preprocess_text, check_is_english
 
 
-# NB: Slurs and offensive language may be present in test cases, as they are important in the dataset
-
+# NB: Slurs and offensive language may be present in test cases, as they are important in the dataset, and making sure
+# they are handled correctly by the string preprocessing methods, so they may be detected by the model well
 
 class TestCleanText:
 

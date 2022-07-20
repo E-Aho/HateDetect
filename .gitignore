@@ -273,7 +273,9 @@ dmypy.json
 cython_debug/
 
 # Project specifics
-**/dataset.**
-
+dataset.csv
+dataset.json
+*_df*.csv
+slangdict.pickle
 
 

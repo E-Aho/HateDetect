@@ -1,195 +1,187 @@
-import os
-import pathlib
-import shutil
-from typing import Tuple, Generator, List, Union
+import abc
+import gc
+from abc import ABC
+from collections import Generator
+from pathlib import Path
+from typing import List
 
-import numpy as np
+import keras
 import pandas as pd
 import tensorflow as tf
-import tensorflow_hub as hub
 
-import transformers
 from transformers import (
-    RobertaConfig,
     RobertaTokenizer,
-    TFRobertaForSequenceClassification,
-    set_seed, create_optimizer,
+    TFRobertaModel,
 )
 
 from datasets.hatexplain import hatexplain_dataset_path
-from src.models import RNG_SEED
-
-DATASET_MAX_SIZE = None
-BATCH_SIZE = 32
-P_TEST = 0.3
-P_VAL = 0
-
-x_cols = ["input_ids", "attention_mask"]
-y_cols = ["hate", "normal", "offensive", "split"]
+from src.models import BASE_MODEL_MODEL_PATH
+from src.models.data_utils import HatexplainDataset
 
 
-def pivot_nested_list(input_arr: List[List]) -> List[np.array]:
-    """Pivots a list of lists, so that each 'column' is its own array"""
-    return [np.array([input_arr[i][j] for i in range(len(input_arr))]) for j in range(len(input_arr[0]))]
+class GarbageCollectCallback(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        gc.collect()
+        tf.keras.backend.clear_session()
 
 
-def dataset_generator(df: pd.DataFrame):
-    x, y = [], []
-    while True:
-        for _, row in df.iterrows():
-            x_row = list([tf.convert_to_tensor(x, tf.int32) for x in row[x_cols]])
-            y_row = list([tf.cast(y, tf.float32) for y in row[y_cols]])
-            x.append(x_row)
-            y.append(y_row)
-            if len(x) >= BATCH_SIZE:
-                x_arr = pivot_nested_list(x)
-                y_arr = np.array(y)
-                yield x_arr, y_arr
-                x, y = [], []
+class AbstractModel(ABC):
+    def __init__(
+            self,
+            input_shape: tuple,
+            output_shape: tuple,
+            model_name: str,
+            save_path: Path,
+            tokenizer_name: str = None,
+    ):
+        if tokenizer_name is None:
+            tokenizer_name = model_name
 
-
-class HatexplainDataset:
-    def __init__(self, initial_df: pd.DataFrame, p_test: float, p_val: float=0.0):
-        self.batch_size = BATCH_SIZE
-        self.initial_dataframe = initial_df
-        self.dataset_size = len(self.initial_dataframe)
-        self.token_width = len(initial_df["input_ids"][0])
-        self.num_batches = np.ceil(self.dataset_size / self.batch_size)
-
-        def __get_datasets__(df: pd.DataFrame) -> Tuple[pd.DataFrame, ...]:
-            shuffled_df = df.sample(frac=1, random_state=RNG_SEED)
-            # Add attention head empty output here
-
-            # ds = tf.data.Dataset.from_tensor_slices(shuffled_df.to_dict(orient="list"))
-
-            # Get lengths of dataset for tf
-            p_train = 1 - (p_val + p_test)
-            n_train = int(p_train * self.dataset_size)
-            n_val = int(p_val * self.dataset_size)
-            n_test = self.dataset_size - (n_val + n_train)
-
-            train_df = shuffled_df.iloc[:n_train]
-            test_df = shuffled_df.iloc[n_train:n_test]
-
-            if n_val < 1:
-                return train_df, test_df
-            else:
-                val_df = shuffled_df.iloc[n_train + n_test:]
-                return train_df, test_df, val_df
-
-        all_splits = __get_datasets__(self.initial_dataframe)
-        self.train_df = all_splits[0]
-        self.test_df = all_splits[1]
-        if len(all_splits) <= 2:
-            self.val_df = None
-        else:
-            self.val_df = all_splits[2]
-
-    def get_train_generator(self) -> Generator:
-        return dataset_generator(self.train_df)
-
-    def get_test_generator(self) -> Generator:
-        return dataset_generator(self.test_df)
-
-    def get_val_generator(self) -> Union[None, iter]:
-        if self.val_df is None:
-            return None
-        return dataset_generator(self.val_df)
-
-
-class DataLoader:
-    def __init__(self, location: pathlib.Path):
-        self.path = location
-        self.dataset = self.__init_dataset__(location)
-
-    def __init_dataset__(self, location: pathlib.Path) -> HatexplainDataset:
-
-        pd_df = pd.read_parquet(location)
-        ds = HatexplainDataset(pd_df, p_test=0.3)
-        return ds
-
-    #
-    # def get_dataset(self, p_test: float, p_val: float = 0, batch_size: int = 32,) -> Tuple[tf.data.Dataset, ...]:
-    #     if p_test + p_val >= 1.0:
-    #         raise Exception(f"P_test and p_train are too large. Must add to less than 1.\nP_test={p_test}, p_train={p_val}")
-    #     if p_test < 0 or p_val < 0:
-    #         raise Exception(f"Proportions must be greater than 0.\nP_test={p_test}, p_train={p_val}")
-    #
-    #     p_train = 1 - (p_val + p_test)
-    #     n_train = int(p_train * self.dataset_size)
-    #     n_val = int(p_val * self.dataset_size)
-    #     n_test = self.dataset_size - (n_val + n_train)
-    #     shuffled_dataset = self.dataset.shuffle(
-    #         buffer_size=self.dataset_size, seed=RNG_SEED,
-    #         reshuffle_each_iteration=False
-    #     )
-    #
-    #     if n_val > 0:
-    #         return (
-    #             shuffled_dataset.take(n_train).batch(batch_size=batch_size, drop_remainder=False),
-    #             shuffled_dataset.skip(n_train).take(n_test).batch(batch_size=batch_size, drop_remainder=False),
-    #             shuffled_dataset.skip(n_train+n_test).batch(batch_size=batch_size, drop_remainder=False)
-    #         )
-    #     else:
-    #         return (
-    #             shuffled_dataset.take(n_train).batch(batch_size=batch_size, drop_remainder=False),
-    #             shuffled_dataset.skip(n_train).batch(batch_size=batch_size, drop_remainder=False)
-    #         )
-
-
-class BaseBertModel:
-
-    def __init__(self, dataloader: DataLoader):
-        self.model_pretrained_name = "roberta-base"
         self.tokenizer = RobertaTokenizer.from_pretrained(
-            self.model_pretrained_name,
+            tokenizer_name
         )
 
-        self.bert_model = TFRobertaForSequenceClassification.from_pretrained(
-            self.model_pretrained_name,
+        self.bert = TFRobertaModel.from_pretrained(
+            model_name
+        )
+        self.input_shape = input_shape
+        self.output_shape = output_shape
+        self.model = self.get_model(input_shape=input_shape, output_shape=output_shape,)
+        self.save_path = save_path
+        self.callbacks = [
+            tf.keras.callbacks.ModelCheckpoint(
+                filepath=self.get_save_location(),
+                save_weights_only=False,
+                monitor='val_categorical_accuracy',
+                save_best_only=True,
+            ),
+            GarbageCollectCallback(),
+
+        ]
+
+    @abc.abstractmethod
+    def get_model(self, input_shape: tuple, output_shape: tuple,) -> tf.keras.Model:
+        pass
+
+    def get_save_location(self):
+        paths = self.save_path.glob("ver_*")
+        existing_file_names = [p.stem for p in paths]
+        if not existing_file_names:
+            return self.save_path / "ver_0"
+
+        existing_versions = [p.split("ver_")[1] for p in existing_file_names]
+        next_iter = 1 + max([int(p) if p.isnumeric() else 0 for p in existing_versions])
+
+        return self.save_path / f"ver_{next_iter}"
+
+    def make_predictions(self, data_generators: Generator, data_steps: List[int]):
+        all_outs = []
+        for generator in data_generators:
+            outputs = self.model.predict(generator, steps=data_steps)
+            row_based_outputs = None  # spread tensor to result
+            all_outs.append(outputs)
+
+        # TODO: Convert back to format and do loss calculations, etc
+
+
+class BaseBertModel(AbstractModel):
+
+    def __init__(self, input_shape: tuple, output_shape: tuple):
+        model_pretrained_name = "roberta-base"
+        save_path = BASE_MODEL_MODEL_PATH
+        super().__init__(
+            input_shape=input_shape,
+            output_shape=output_shape,
+            model_name=model_pretrained_name,
+            save_path=save_path,
         )
 
-        self.dataset = dataloader.dataset
-        self.dataloader = dataloader
-        self.token_width = self.dataset.token_width
+        self.loss = tf.keras.losses.categorical_crossentropy()
+        self.metrics = [tf.keras.metrics.categorical_accuracy(), ]
+        self.optimizer = tf.keras.optimizers.Adam
+        self.dropout_rate = 0.2
 
-    def get_model(self) -> TFRobertaForSequenceClassification:
-        return self.bert_model
+    def get_opt(self, learning_rate: float,) -> tf.keras.optimizers:
+        return self.optimizer(learning_rate=learning_rate)
+
+    def get_model(self, input_shape: tuple, output_shape: tuple,) -> tf.keras.Model:
+        input_ids = tf.keras.layers.Input(shape=input_shape, dtype=tf.int32, name="input_ids")
+
+        input_attention_mask = tf.keras.layers.Input(
+            shape=input_shape,
+            dtype=tf.int32,
+            name="attention_mask"
+        )
+
+        bert_model = self.bert([input_ids, input_attention_mask])
+
+        last_hidden_state = bert_model.last_hidden_state
+        cls_token_out = last_hidden_state[:, 0, :]  # the CLS token is used to represent sentence level classification
+        dropout = tf.keras.layers.Dropout(self.dropout_rate)(cls_token_out)
+
+        output = tf.keras.layers.Dense(output_shape, activation="softmax")(dropout)  # 3 for non-split training
+
+        model = tf.keras.models.Model(inputs=[input_ids, input_attention_mask], outputs=output)
+        return model
+
+    def fine_tune_and_train_mdl(self, dataset: HatexplainDataset, learning_rate: float, n_epochs: int,):
+        model = self.model
+        num_epochs = n_epochs
+
+        model.compile(
+            optimizer=self.get_opt(learning_rate),
+            loss=self.loss,
+            metrics=self.metrics,
+            run_eagerly=False,
+        )
+
+        train_data = dataset.get_train_generator()
+        test_data = dataset.get_test_generator()
+
+        model.fit(
+            train_data,
+            validation_data=test_data,
+            batch_size=dataset.batch_size,
+            epochs=num_epochs,
+            steps_per_epoch=dataset.train_batches,
+            validation_steps=dataset.test_batches,
+            use_multiprocessing=False,
+            callbacks=self.callbacks,
+            max_queue_size=20,
+            workers=1,
+        )
+
+        return model
 
 
+def train_mdl(mdl: BaseBertModel, dataset: HatexplainDataset, learning_rate: float, n_epochs: int, ):
+    pass
 
-def train_mdl(mdl: BaseBertModel):
-    model = mdl.get_model()
-    batch_size = BATCH_SIZE
-    num_epochs = 5
-
-    bert_model = model
-    input_ids = tf.keras.layers.Input(shape=(mdl.dataset.token_width,), dtype=tf.int32, name="input_ids")
-    input_attention_mask = tf.keras.layers.Input(shape=(mdl.dataset.token_width,), dtype=tf.int32, name="attention_mask")
-    bert_out = bert_model([input_ids, input_attention_mask])[0]
-    output = tf.keras.layers.Dense(4, activation="softmax")(bert_out)  # 3 for non-split training
-    model = tf.keras.models.Model(inputs=[input_ids, input_attention_mask], outputs=output)
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate=2e-5)
-    model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"])
-    train_data = mdl.dataset.get_train_generator()
-    test_data = mdl.dataset.get_test_generator()
-    model.fit(
-        train_data, validation_data=test_data,
-        epochs=num_epochs, batch_size=batch_size, steps_per_epoch=mdl.dataset.num_batches,
-    )
-
-
-def entropy(p):
-    plogp = p * tf.math.log(p)
-    plogp[p == 0] = 0
-    return tf.math.cumsum(plogp)
+def fine_tune_and_train():
+    pass #todo
 
 
 if __name__ == "__main__":
-    dataloader = DataLoader(hatexplain_dataset_path)
-    base_mdl = BaseBertModel(dataloader)
+    p_test = 0.2
+    learning_rate = 1e-5
+    epochs = 8
 
-    train_mdl(base_mdl)
+    # TODO: Train fully conected layers with higher learning rate (1e-3)
+
+    hatexplain_dataset = HatexplainDataset(pd.read_parquet(hatexplain_dataset_path), p_test=p_test)
+
+    base_mdl = BaseBertModel(
+        input_shape=hatexplain_dataset.model_input_size,
+        output_shape=hatexplain_dataset.model_output_size,
+    )
+
+    train_mdl(
+        base_mdl,
+        dataset=hatexplain_dataset,
+        learning_rate=learning_rate,
+        n_epochs=epochs,
+    )
+
+
 
 

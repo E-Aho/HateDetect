@@ -19,7 +19,7 @@ BASE_WOMAN_SLUR = "whore"
 # https://en.wikipedia.org/wiki/LGBT_slang#Slurs
 # https://en.wikipedia.org/wiki/Category:Pejorative_terms_for_women
 
-#
+
 # NB: Code currently only handles monograms, while bigrams are sometimes used as slurs
 
 # With a sufficiently large training set or a broad enough input dict, this would be unneccesary,

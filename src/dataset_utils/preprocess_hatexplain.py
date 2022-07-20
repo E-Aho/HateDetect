@@ -1,14 +1,12 @@
 from collections import defaultdict
 
-import numpy as np
 import pandas as pd
 
 from datasets.hatexplain import hatexplain_json_path, dataset_labels, raw_hatexplain_path, processed_hatexplain_path, \
     hatexplain_dataset_path
 
-import multiprocessing as mp
 
-from src.dataset_utils.string_preprocessing import check_is_english, preprocess_text
+from src.dataset_utils.string_preprocessing import preprocess_text
 from src.models.simplified_tokenizers import tokenize_hatexplain
 
 
@@ -83,21 +81,6 @@ def preprocess_hatexplain_df(df: pd.DataFrame):
     df["clean_text"] = df.apply(lambda x: " ".join(x["clean_tokens"]).replace(" ' ", "'"), axis=1)
 
     return df
-
-    #     for target, present in binary_targets.items():
-    #         row_result[f"at_{target}".lower()] = present
-    #
-    #     output_rows.append(row_result)
-    #
-    # full_dataframe = pd.DataFrame(output_rows)
-    #
-    #
-    # print("checking languages...")
-    # with mp.Pool(mp.cpu_count()) as pool:
-    #     full_dataframe["_eng"] = pool.map(check_is_english, full_dataframe["clean_text"])
-    #
-    # full_dataframe["is_english"], full_dataframe["p_lang"] = full_dataframe["_eng"].str
-    # return full_dataframe
 
 
 def remove_nonenglish_entries(df: pd.DataFrame):
