@@ -13,7 +13,7 @@ from ekphrasis.dicts.noslang.slangdict import slangdict
 from sklearn.feature_extraction.text import strip_accents_ascii
 from symspellpy import SymSpell, Verbosity
 
-from src.dataset_utils.LW_constants import SLANG_MAP
+from src.dataset_utils.CW_constants import SLANG_MAP
 
 
 @lru_cache()

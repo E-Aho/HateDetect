@@ -1,5 +1,10 @@
-# NB: File contains derogatory language and slurs, done as part of trying to combat attempts
-# to use slang/ spelling changes to skirt detection
+# Content Warning: The following file contains slurs, and other harmful language.
+# This is done as part of this project, with the aim of trying to combat hate in online spaces.
+
+# Specific reason for use in this file:
+#   This file contains logic to map uncommon slurs and slurs which users have changed the spelling of
+#   in order to skirt deteciton. This is used as part of the preprocessing of tweets before input to the model,
+#   so it could better understand slurs.
 
 BASE_AFRICAN_SLUR = "nigger"
 BASE_ARAB_SLUR = "arab"
