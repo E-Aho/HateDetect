@@ -1,3 +1,4 @@
+import math
 from typing import List, Generator, Union
 
 import numpy as np
@@ -37,7 +38,10 @@ def dataset_generator(df: pd.DataFrame):
             yield pivot_nested_list(x), np.array(y)
             x, y = [], []
 
-
+def get_n_batch(n, batch_size):
+    if n % batch_size == 0:
+        return n // batch_size
+    return math.ceil(n / batch_size)
 
 def prepare_dataset_splits(
         df: pd.DataFrame, n_train: int, n_test: int, n_val: int = 0, rng_seed=RNG_SEED,
@@ -55,7 +59,11 @@ def prepare_dataset_splits(
 
 
 class HatexplainDataset:
-    def __init__(self, initial_df: pd.DataFrame, p_test: float, p_val: float=0.0):
+    def __init__(self, initial_df: pd.DataFrame, p_test: float, p_val: float = 0.0):
+        """
+
+        :rtype: object
+        """
         self.batch_size = BATCH_SIZE
         self.initial_dataframe = initial_df
         self.dataset_size = len(self.initial_dataframe)
@@ -70,20 +78,21 @@ class HatexplainDataset:
         n_val = int(np.floor(p_val * self.dataset_size))
 
         data_splits = prepare_dataset_splits(self.initial_dataframe, n_train=n_train, n_test=n_test, n_val=n_val)
-        self.train_batches = n_train // self.batch_size
-        self.test_batches = n_test // self.batch_size
+        self.train_batches = get_n_batch(n_train, self.batch_size)
+        self.test_batches = get_n_batch(n_test, self.batch_size)
+        self.val_batches = get_n_batch(n_val, self.batch_size)
 
         self.train_df = data_splits[0]
         self.test_df = data_splits[1]
-
-        print(f"LENGTH OF TRAIN: {len(self.train_df)}")
-        print(f"LENGTH OF TEST: {len(self.test_df)}")
-        print(f"BATCH N: {self.train_batches, self.test_batches}")
 
         if len(data_splits) <= 2:
             self.val_df = None
         else:
             self.val_df = data_splits[2]
+
+        print(f"LENGTH OF TRAIN: {len(self.train_df)}")
+        print(f"LENGTH OF TEST: {len(self.test_df)}")
+        print(f"BATCH N: {self.train_batches, self.test_batches}")
 
     def get_train_generator(self) -> Generator:
         return dataset_generator(self.train_df)
@@ -91,10 +100,25 @@ class HatexplainDataset:
     def get_test_generator(self) -> Generator:
         return dataset_generator(self.test_df)
 
+    def get_generators(self) -> List[Generator]:
+        if self.val_df is None:
+            return [self.get_train_generator(), self.get_test_generator()]
+        return [self.get_train_generator(), self.get_test_generator(), self.get_val_generator()]
+
+    def get_steps(self) -> List[int]:
+        if self.val_df is None:
+            return [self.train_batches, self.test_batches]
+        return [self.train_batches, self.test_batches, self.val_batches]
+
     def get_val_generator(self) -> Union[None, iter]:
         if self.val_df is None:
             return None
         return dataset_generator(self.val_df)
+
+    def get_data_sources(self) -> List[pd.DataFrame]:
+        if self.val_df is None:
+            return [self.train_df, self.test_df]
+        return [self.train_df, self.test_df, self.val_df]
 
 
 def entropy(p):

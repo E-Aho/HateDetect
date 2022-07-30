@@ -3,7 +3,7 @@
 
 # Specific reason for use in this file:
 #   This file contains logic to map uncommon slurs and slurs which users have changed the spelling of
-#   in order to skirt deteciton. This is used as part of the preprocessing of tweets before input to the model,
+#   in order to skirt detection. This is used as part of the preprocessing of tweets before input to the model,
 #   so it could better understand slurs.
 
 BASE_AFRICAN_SLUR = "nigger"
@@ -141,11 +141,11 @@ SLUR_MAP_PLURALS = {key+"s": val+"s" for key, val in SLUR_MAP_SINGULARS.items()}
 SLUR_MAP_PLURALS.update({key+"z": val+"s" for key, val in SLUR_MAP_SINGULARS.items()})
 SLUR_MAP = {**SLUR_MAP_SINGULARS, **SLUR_MAP_PLURALS, **SPECIFIC_TERM_MAPS}
 
-MORE_SWEARS = {
+MORE_TERMS = {
     "yuh": "yeah",
     "u": "you",
     "r": "are",
     "gaf": "give a fuck",
 }
 
-SLANG_MAP = {**SLUR_MAP, **MORE_SWEARS, **EXTRA_SLANG_MAP}
+SLANG_MAP = {**SLUR_MAP, **MORE_TERMS, **EXTRA_SLANG_MAP}
