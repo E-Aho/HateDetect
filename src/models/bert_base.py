@@ -1,3 +1,6 @@
+from datetime import datetime
+from pathlib import Path
+
 import tensorflow as tf
 
 from src.models import BASE_MODEL_MODEL_PATH
@@ -21,6 +24,13 @@ class BaseBertModel(AbstractModel):
 
         self.loss = "categorical_crossentropy"
         self.metrics = ["categorical_accuracy"]
+        logs = Path("logs") / datetime.now().strftime("%Y%m%d-%H%M%S")
+
+        self.callbacks.append(
+            tf.keras.callbacks.TensorBoard(log_dir=logs,
+                                          histogram_freq=1, update_freq="batch", profile_batch=1)
+
+        )
 
     def get_opt(self, learning_rate: float,):
         return tf.keras.optimizers.Adam(learning_rate=learning_rate)

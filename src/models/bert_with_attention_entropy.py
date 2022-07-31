@@ -1,3 +1,6 @@
+from datetime import datetime
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -55,30 +58,22 @@ def packed_cast(x: PackedTensor, dtype: str, name=None):
 def entropy_of_tensor(t: tf.Tensor):
     t = tf.boolean_mask(t, tf.math.greater(t, tf.zeros_like(t))) # filter out zero values
     tlogt = t * tf.math.log(t)
-    return - tf.math.reduce_sum(tlogt)
-
-
-@tf.function
-def get_entropy_for_two_d_attentions(attentions, mask):
-    bool_mask = tf.math.greater(mask, tf.zeros_like(mask))
-    one_masked = tf.boolean_mask(attentions, bool_mask, axis=1)
-    two_masked = tf.boolean_mask(one_masked, bool_mask, axis=0)
-    entropy_tensor = tf.map_fn(lambda a: entropy_of_tensor(a), two_masked)
-    out_tensor = tf.reduce_sum(
-        entropy_tensor
-    )
-    return out_tensor
-
-
+    return - tf.math.reduce_sum(tlogt, axis=0)
 @tf.function
 def calculate_masked_entropy_for_subbatch(a_3d: tf.Tensor, one_d_attention_mask: tf.Tensor):
-    return tf.reduce_mean(
-        tf.map_fn(lambda attentions: get_entropy_for_two_d_attentions(attentions, one_d_attention_mask), a_3d)
-    )
+    bool_mask = tf.cast(one_d_attention_mask, tf.bool)
 
+    masked_attention = tf.boolean_mask(
+        tf.boolean_mask(a_3d, mask=bool_mask, axis=2),
+    mask=bool_mask, axis=1)
+
+    return tf.reduce_mean(
+        tf.map_fn(entropy_of_tensor, masked_attention)
+    )
 
 @tf.function
 def calculate_masked_entropy(attentions: tf.Tensor, attention_mask: tf.Tensor) -> tf.Tensor:
+
     return tf.reduce_mean(tf.map_fn(
             lambda batch: calculate_masked_entropy_for_subbatch(batch[0], batch[1]),
             [attentions, attention_mask], fn_output_signature=tf.float32
@@ -90,6 +85,7 @@ class AttentionEntropyLoss(Loss):
         super().__init__()
         self.chi = chi
         self.loss_fn = tf.keras.losses.CategoricalCrossentropy()
+
 
     def call(self, y_true, y_pred):
         predicted_labels, attentions, attention_mask = y_pred.output_0, y_pred.output_1, y_pred.output_2
@@ -134,6 +130,12 @@ class BertModelWithAttentionEntropy(AbstractModel):
 
         self.loss = AttentionEntropyLoss(chi=0.2)
         self.metrics = []
+        # logs = Path("logs") / datetime.now().strftime("%Y%m%d-%H%M%S")
+        # # self.callbacks.append(
+        #     tf.keras.callbacks.TensorBoard(log_dir=logs,
+        #                                   histogram_freq=1, update_freq="batch", profile_batch=1)
+        #
+        # )
         self.optimizer = "adam"
 
     def get_opt(self, learning_rate: float, ):

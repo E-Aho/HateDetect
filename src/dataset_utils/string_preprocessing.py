@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List
 
-import cld3
+# import cld3
 import emoji
 import pkg_resources
 from ekphrasis.classes.preprocessor import TextPreProcessor
@@ -67,10 +67,10 @@ def get_slangdict() -> dict:
     return base_slangdict
 
 
-def check_is_english(clean_str: str) -> tuple:
-    input_str = clean_str.replace(" i ", " I ")
-    detected = cld3.get_language(input_str)
-    return detected.language, detected.probability
+# def check_is_english(clean_str: str) -> tuple:
+#     input_str = clean_str.replace(" i ", " I ")
+#     detected = cld3.get_language(input_str)
+#     return detected.language, detected.probability
 
 
 def dict_replace(input_str: str, replace_dict: dict) -> str:
