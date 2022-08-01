@@ -1,7 +1,3 @@
-from datetime import datetime
-from pathlib import Path
-
-import numpy as np
 import pandas as pd
 import tensorflow as tf
 from keras.losses import Loss
@@ -130,15 +126,9 @@ class BertModelWithAttentionEntropy(AbstractModel):
 
         self.loss = AttentionEntropyLoss(chi=0.2)
         self.metrics = []
-        # logs = Path("logs") / datetime.now().strftime("%Y%m%d-%H%M%S")
-        # # self.callbacks.append(
-        #     tf.keras.callbacks.TensorBoard(log_dir=logs,
-        #                                   histogram_freq=1, update_freq="batch", profile_batch=1)
-        #
-        # )
-        self.optimizer = "adam"
+        self.optimizer = self.get_opt
 
-    def get_opt(self, learning_rate: float, ):
+    def get_opt(self, learning_rate: float):
         return tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     def get_model(self, input_shape: tuple, output_shape: tuple, ) -> tf.keras.Model:
@@ -166,19 +156,50 @@ class BertModelWithAttentionEntropy(AbstractModel):
         model = tf.keras.models.Model(inputs=[input_ids, input_attention_mask], outputs=packed_layer)
         return model
 
-    def fine_tune_and_train_mdl(self, dataset: HatexplainDataset, learning_rate: float, n_epochs: int, ):
+    def fine_tune_and_train_mdl(self, dataset: HatexplainDataset, first_lr: float, second_lr: float, n_epochs: int, chi: int):
         model = self.model
         num_epochs = n_epochs
 
+        train_data = dataset.get_train_generator()
+        test_data = dataset.get_test_generator()
+
+        # Set up to train outer layer with high learning rate
         model.compile(
-            optimizer=self.optimizer,
+            optimizer=self.optimizer(learning_rate=first_lr),
             metrics=self.metrics,
-            loss=AttentionEntropyLoss(chi=0.2),
+            loss=AttentionEntropyLoss(chi=chi),
             run_eagerly=False,
         )
 
-        train_data = dataset.get_train_generator()
-        test_data = dataset.get_test_generator()
+        for layer in model.layers:
+            layer.trainable = False
+
+        for layer_i in range(5, len(model.layers)):
+            model.layers[layer_i].trainable = True
+
+        model.fit(
+            train_data,
+            validation_data=test_data,
+            batch_size=dataset.batch_size,
+            epochs=num_epochs,
+            steps_per_epoch=dataset.train_batches,
+            validation_steps=dataset.test_batches,
+            use_multiprocessing=False,
+            callbacks=self.callbacks,
+            max_queue_size=20,
+            workers=1,
+        )
+
+        # Fine tune on sub data
+        model.compile(
+            optimizer=self.optimizer(learning_rate=second_lr),
+            metrics=self.metrics,
+            loss=AttentionEntropyLoss(chi=chi),
+            run_eagerly=False,
+        )
+
+        for layer in model.layers:
+            layer.trainable = True
 
         model.fit(
             train_data,
@@ -196,6 +217,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
         return model
 
 
+
 if __name__ == "__main__":
     hatexplain_dataset = HatexplainDataset(
         pd.read_parquet(hatexplain_dataset_path), p_test=0.2
@@ -208,6 +230,7 @@ if __name__ == "__main__":
 
     trained_mdl = base_mdl.fine_tune_and_train_mdl(
         dataset=hatexplain_dataset,
-        learning_rate=learning_rate,
+        first_lr=learning_rate,
+        second_lr=learning_rate,
         n_epochs=1,
     )
