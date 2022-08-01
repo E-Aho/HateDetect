@@ -3,7 +3,7 @@ import gc
 from abc import ABC
 from collections import Generator
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ class AbstractModel(ABC):
             tf.keras.callbacks.ModelCheckpoint(
                 filepath=self.get_save_location(),
                 save_weights_only=False,
-                monitor='val_categorical_accuracy',
+                monitor="val_categorical_accuracy",
                 save_best_only=True,
             ),
             GarbageCollectCallback(),

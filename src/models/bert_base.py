@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+from typing import Union
 
 import tensorflow as tf
 
@@ -23,7 +24,6 @@ class BaseBertModel(AbstractModel):
         )
 
         self.loss = "categorical_crossentropy"
-        self.metrics = ["categorical_accuracy"]
         logs = Path("logs") / datetime.now().strftime("%Y%m%d-%H%M%S")
 
         self.callbacks.append(
@@ -31,6 +31,12 @@ class BaseBertModel(AbstractModel):
                                           histogram_freq=1, update_freq="batch", profile_batch=1)
 
         )
+
+    def get_validation_monitor(self) -> Union[str, property]:
+        return "val_categorical_accuracy"
+
+    def get_metrics(self):
+        return [tf.keras.metrics.CategoricalAccuracy]
 
     def get_opt(self, learning_rate: float,):
         return tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -83,3 +89,5 @@ class BaseBertModel(AbstractModel):
         )
 
         return model
+
+

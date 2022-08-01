@@ -1,3 +1,6 @@
+from typing import Union
+
+import keras.metrics
 import pandas as pd
 import tensorflow as tf
 from transformers import RobertaConfig
@@ -5,7 +8,7 @@ from transformers import RobertaConfig
 from datasets.hatexplain import hatexplain_dataset_path
 from src.models import BASE_MODEL_MODEL_PATH
 from src.models.abstract_base_model import AbstractModel
-from src.models.attention_entropy_loss import AttentionEntropyLoss
+from src.models.attention_entropy_loss import AttentionEntropyLoss, CompatibleMetric
 from src.models.data_utils import HatexplainDataset
 from src.models.model_utils import PackingLayer
 
@@ -33,8 +36,8 @@ class BertModelWithAttentionEntropy(AbstractModel):
             save_path=save_path,
         )
 
-        self.loss = AttentionEntropyLoss(chi=0.2)
-        self.metrics = []
+        self.loss = AttentionEntropyLoss(phi=0.2)
+        self.metrics = [CompatibleMetric(metric_fn=keras.metrics.categorical_accuracy, name=keras.metrics.CategoricalAccuracy.name)]
         self.optimizer = "adam"
 
     def get_opt(self, learning_rate: float, ):
@@ -72,7 +75,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
         model.compile(
             optimizer=self.optimizer,
             metrics=self.metrics,
-            loss=AttentionEntropyLoss(chi=0.2),
+            loss=AttentionEntropyLoss(phi=0.2),
             run_eagerly=False,
         )
 

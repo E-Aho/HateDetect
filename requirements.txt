@@ -1,21 +1,25 @@
+
+# MacOS and Windows TensorFlow versions are different, install required varies
+# Install TF >= 2.9
+# tensorflow~=2.9.1
 pandas>=1.4.2
 numpy>=1.22.4
 requests>=2.27.0
 transformers>=4.20.0
 setuptools>=62.3.0
-# tensorflow~=2.9.1
 keras~=2.9.0
+wandb>=0.12.21
+scikit-learn>=1.1.1
 
 
-# MacOS and Windows TensorFlow versions are different, install required varies
-# Install TF >= 2.8
 # Libraries used in Dataset Generation
 # NB: Symspell requires Rust
 ekphrasis>=0.5.4
 symspellpy>=6.7.6
 scipy>=1.8.1
 emoji==1.7.0
-sklearn
+sklearn>=0.0
 pyarrow==8.0.0
 
+# Libraries used in testing
 pytest>=7.1.2

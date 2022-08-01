@@ -1,3 +1,6 @@
+from typing import Union
+
+import keras.metrics
 import tensorflow as tf
 from keras.losses import Loss
 
@@ -32,9 +35,9 @@ def calculate_masked_entropy(attentions: tf.Tensor, attention_mask: tf.Tensor) -
 
 
 class AttentionEntropyLoss(Loss):
-    def __init__(self, chi: float = 0.1):
+    def __init__(self, phi: float = 0.1):
         super().__init__()
-        self.chi = chi
+        self.phi = phi
         self.loss_fn = tf.keras.losses.CategoricalCrossentropy()
 
     def call(self, y_true, y_pred):
@@ -43,5 +46,15 @@ class AttentionEntropyLoss(Loss):
         cat_loss = self.loss_fn(y_true, predicted_labels)
         entropy_loss = calculate_masked_entropy(attentions, attention_mask)
 
-        _o = cat_loss + tf.scalar_mul(self.chi, entropy_loss)
-        return _o
+        return cat_loss + tf.scalar_mul(self.phi, entropy_loss)
+
+
+class CompatibleMetric(tf.keras.metrics.Metric):
+    def __init__(self, metric_fn: keras.metrics, name: Union[str, property], **kwargs):
+        self.metric = metric_fn
+        super().__init__(name=name, **kwargs)
+
+    def update_state(self, y_true, y_pred: tf.Tensor, sample_weight=None):
+        predicted_labels = y_pred[0]
+        return self.metric(y_true, predicted_labels)
+
