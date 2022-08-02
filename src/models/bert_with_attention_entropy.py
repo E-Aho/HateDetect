@@ -89,10 +89,10 @@ class BertModelWithAttentionEntropy(AbstractModel):
 
     def fine_tune_and_train_mdl(
             self, dataset: HatexplainDataset,
-            custom_callback: keras.callbacks.Callback,
+            custom_callback,
     ):
         model = self.model
-        callbacks = self.callbacks.append(custom_callback)
+        self.callbacks.append(custom_callback)
 
         train_data = dataset.get_train_generator()
         test_data = dataset.get_test_generator()
@@ -121,7 +121,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
             steps_per_epoch=dataset.train_batches,
             validation_steps=dataset.test_batches,
             use_multiprocessing=False,
-            callbacks=callbacks,
+            callbacks=self.callbacks,
             max_queue_size=20,
             workers=1,
         )
@@ -146,7 +146,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
             steps_per_epoch=dataset.train_batches,
             validation_steps=dataset.test_batches,
             use_multiprocessing=False,
-            callbacks=callbacks,
+            callbacks=self.callbacks,
             max_queue_size=20,
             workers=1,
         )
