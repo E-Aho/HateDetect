@@ -1,10 +1,12 @@
 import argparse
+import random
 
 import keras.callbacks
 import pandas as pd
 import wandb
 
 from datasets.hatexplain import hatexplain_dataset_path
+from src.models import RNG_SEED
 from src.models.bert_with_attention_entropy import BertModelWithAttentionEntropy
 from src.models.constants import WANDB_PROJECT_NAME
 from src.models.data_utils import HatexplainDataset
@@ -13,12 +15,13 @@ import tensorflow as tf
 
 
 class WandBCallback(keras.callbacks.Callback):
-    def __init__(self, wandb: wandb):
+    def __init__(self, wb_api):
         super().__init__()
-        self.wandb = wandb
+        self.wb_api = wb_api
 
-    def on_epoch_end(self, epoch, logs=None):
-        wandb.log({
+    def on_epoch_end(self, epoch, logs):
+        print(f"logging epoch results: val_acc = {logs['val_categorical_accuracy']}")
+        self.wb_api.log({
             "epoch": logs["epoch"],
             "loss": logs["loss"],
             "val_loss": logs["val_loss"],
@@ -32,9 +35,10 @@ def train():
     run_config = wandb.config
 
     dataset = HatexplainDataset(
-      pd.read_parquet(hatexplain_dataset_path),
-      p_test=0.25,
-      batch_size=run_config["batch_size"]
+        pd.read_parquet(hatexplain_dataset_path),
+        p_test=0.25,
+        batch_size=run_config["batch_size"],
+        rng_seed=random.randint(1, 10**7),
     )
 
     model = BertModelWithAttentionEntropy(
@@ -50,11 +54,13 @@ def train():
 
     trained_mdl = model.fine_tune_and_train_mdl(
         dataset=dataset,
-        custom_callback=WandBCallback(wandb=wandb),
+        custom_callback=WandBCallback(wandb),
     )
 
 
 def sweep_run():
+
+    random.seed = RNG_SEED
 
     sweep_config = {
         "name": "first_sweep",
@@ -64,7 +70,7 @@ def sweep_run():
                 "value": 20
             },
             "head_learning_rate": {
-                "values": [1e-2, 1e-3]
+                "values": [1e-2, 1e-3, 1e-4]
             },
             "fine_tune_learning_rate": {
                 "values": [1e-3, 1e-4, 1e-5]

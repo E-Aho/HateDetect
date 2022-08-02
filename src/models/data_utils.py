@@ -60,7 +60,13 @@ def prepare_dataset_splits(
 
 
 class HatexplainDataset:
-    def __init__(self, initial_df: pd.DataFrame, p_test: float, p_val: float = 0.0, batch_size: int=32):
+    def __init__(
+            self, initial_df: pd.DataFrame,
+            p_test: float,
+            p_val: float = 0.0,
+            batch_size: int=32,
+            rng_seed: int = RNG_SEED,
+     ):
         """
 
         :rtype: object
@@ -78,7 +84,11 @@ class HatexplainDataset:
         n_test = int(np.floor(p_test * self.dataset_size))
         n_val = int(np.floor(p_val * self.dataset_size))
 
-        data_splits = prepare_dataset_splits(self.initial_dataframe, n_train=n_train, n_test=n_test, n_val=n_val)
+        data_splits = prepare_dataset_splits(
+            self.initial_dataframe,
+            n_train=n_train, n_test=n_test, n_val=n_val,
+            rng_seed=rng_seed
+        )
         self.train_batches = get_n_batch(n_train, self.batch_size)
         self.test_batches = get_n_batch(n_test, self.batch_size)
         self.val_batches = get_n_batch(n_val, self.batch_size)
