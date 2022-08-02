@@ -24,13 +24,7 @@ class BaseBertModel(AbstractModel):
         )
 
         self.loss = "categorical_crossentropy"
-        logs = Path("logs") / datetime.now().strftime("%Y%m%d-%H%M%S")
-
-        self.callbacks.append(
-            tf.keras.callbacks.TensorBoard(log_dir=logs,
-                                          histogram_freq=1, update_freq="batch", profile_batch=1)
-
-        )
+        self.metrics = ["categorical_accuracy"]
 
     def get_validation_monitor(self) -> Union[str, property]:
         return "val_categorical_accuracy"

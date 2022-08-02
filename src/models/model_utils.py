@@ -29,9 +29,6 @@ class PackedTensor(tf.experimental.BatchableExtensionType):
 
 class PackingLayer(tf.keras.layers.Layer):
 
-    def __call__(self, *args, **kwargs):
-        self.call(*args, **kwargs)
-
     def call(self, inputs, training=None):
         first_out, second_out, third_out = inputs
         packed_output = PackedTensor(first_out, second_out, third_out)

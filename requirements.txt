@@ -1,4 +1,3 @@
-
 # MacOS and Windows TensorFlow versions are different, install required varies
 # Install TF >= 2.9
 # tensorflow~=2.9.1

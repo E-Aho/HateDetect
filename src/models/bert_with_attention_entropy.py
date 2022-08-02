@@ -37,7 +37,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
         )
 
         self.loss = AttentionEntropyLoss(phi=0.2)
-        self.metrics = [CompatibleMetric(metric_fn=keras.metrics.categorical_accuracy, name=keras.metrics.CategoricalAccuracy.name)]
+        self.metrics = [CompatibleMetric(metric_fn=keras.metrics.categorical_accuracy, name="categorical_accuracy")]
         self.optimizer = self.get_opt
 
     def get_opt(self, learning_rate: float):
@@ -68,7 +68,13 @@ class BertModelWithAttentionEntropy(AbstractModel):
         model = tf.keras.models.Model(inputs=[input_ids, input_attention_mask], outputs=packed_layer)
         return model
 
-    def fine_tune_and_train_mdl(self, dataset: HatexplainDataset, first_lr: float, second_lr: float, n_epochs: int, phi:float):
+    def fine_tune_and_train_mdl(
+            self, dataset: HatexplainDataset,
+            first_lr: float,
+            second_lr: float,
+            n_epochs: int,
+            phi: float,
+    ):
         model = self.model
         num_epochs = n_epochs
 
@@ -79,7 +85,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
         model.compile(
             optimizer=self.optimizer(learning_rate=first_lr),
             metrics=self.metrics,
-            loss=AttentionEntropyLoss(phi=phi),
+            loss=AttentionEntropyLoss(phi=None),  # do not use entropy loss when just tuning the outer loss
             run_eagerly=False,
         )
 
@@ -88,6 +94,8 @@ class BertModelWithAttentionEntropy(AbstractModel):
 
         for layer_i in range(5, len(model.layers)):
             model.layers[layer_i].trainable = True
+
+        print("\n\n~~ Training ~~\n\n")
 
         model.fit(
             train_data,
@@ -113,6 +121,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
         for layer in model.layers:
             layer.trainable = True
 
+        print("\n\n--Done training head, fine tuning full model--\n\n")
         model.fit(
             train_data,
             validation_data=test_data,
@@ -141,8 +150,8 @@ if __name__ == "__main__":
 
     trained_mdl = base_mdl.fine_tune_and_train_mdl(
         dataset=hatexplain_dataset,
-        first_lr=learning_rate,
-        second_lr=learning_rate,
+        first_lr=1e-3,
+        second_lr=1e-5,
         n_epochs=1,
-        phi=0.2,
+        phi=3,
     )

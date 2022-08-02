@@ -1,6 +1,7 @@
 from typing import Union
 
 import keras.metrics
+import numpy as np
 import tensorflow as tf
 from keras.losses import Loss
 
@@ -27,34 +28,35 @@ def calculate_masked_entropy_for_subbatch(a_3d: tf.Tensor, one_d_attention_mask:
 
 @tf.function
 def calculate_masked_entropy(attentions: tf.Tensor, attention_mask: tf.Tensor) -> tf.Tensor:
-
     return tf.reduce_mean(tf.map_fn(
-            lambda batch: calculate_masked_entropy_for_subbatch(batch[0], batch[1]),
-            [attentions, attention_mask], fn_output_signature=tf.float32
+        lambda batch: calculate_masked_entropy_for_subbatch(batch[0], batch[1]),
+        [attentions, attention_mask], fn_output_signature=tf.float32
     ))
 
 
 class AttentionEntropyLoss(Loss):
-    def __init__(self, phi: float = 0.1):
+    def __init__(self, phi: float):
         super().__init__()
         self.phi = phi
         self.loss_fn = tf.keras.losses.CategoricalCrossentropy()
 
     def call(self, y_true, y_pred):
         predicted_labels, attentions, attention_mask = y_pred.output_0, y_pred.output_1, y_pred.output_2
-
         cat_loss = self.loss_fn(y_true, predicted_labels)
+
+        if self.phi is None:
+            return tf.reduce_mean(cat_loss)
+
         entropy_loss = calculate_masked_entropy(attentions, attention_mask)
+        return tf.reduce_mean(cat_loss + (self.phi * entropy_loss))
 
-        return cat_loss + tf.scalar_mul(self.phi, entropy_loss)
 
-
-class CompatibleMetric(tf.keras.metrics.Metric):
+class CompatibleMetric(tf.keras.metrics.MeanMetricWrapper):
+    """Wrapper class that allows tf.keras.metric functions to be used as usual with the PackedTensor output of EAR
+    model """
     def __init__(self, metric_fn: keras.metrics, name: Union[str, property], **kwargs):
         self.metric = metric_fn
-        super().__init__(name=name, **kwargs)
-
-    def update_state(self, y_true, y_pred: tf.Tensor, sample_weight=None):
-        predicted_labels = y_pred[0]
-        return self.metric(y_true, predicted_labels)
-
+        super().__init__(
+            lambda y_true, y_pred: self.metric(y_true, y_pred.output_0),
+            name=name, **kwargs
+        )
