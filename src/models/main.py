@@ -22,7 +22,7 @@ if __name__ == "__main__":
     trained_mdl = base_mdl.fine_tune_and_train_mdl(
         dataset=hatexplain_dataset,
         learning_rate=learning_rate,
-        n_epochs=1,
+        n_epochs=8,
     )
 
     prediction_df = make_predictions(

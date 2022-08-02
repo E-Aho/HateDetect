@@ -62,6 +62,11 @@ class AbstractModel(ABC):
                 save_best_only=True,
             ),
             GarbageCollectCallback(),
+            tf.keras.callbacks.EarlyStopping(
+                monitor="val_categorical_accuracy",
+                patience=3,
+                restore_best_weights=True,
+            )
         ]
 
     def get_opt(self, learning_rate: float,):

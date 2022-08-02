@@ -22,7 +22,7 @@ def pivot_nested_list(input_arr: List[List]) -> List[np.array]:
 def dataset_generator(df: pd.DataFrame):
     x, y = [], []
     while True:
-        # df = df.sample(frac=1, random_state=RNG_SEED) # shuffle order of split each epoch
+        df = df.sample(frac=1, random_state=RNG_SEED) # shuffle order of split each epoch
         for _, row in df.iterrows():
             x_row = list([tf.convert_to_tensor(x, tf.int32) for x in row[x_cols]])
             y_row = list([tf.cast(y, tf.float32) for y in row[y_cols]])
@@ -38,15 +38,16 @@ def dataset_generator(df: pd.DataFrame):
             yield pivot_nested_list(x), np.array(y)
             x, y = [], []
 
+
 def get_n_batch(n, batch_size):
     if n % batch_size == 0:
         return n // batch_size
     return math.ceil(n / batch_size)
 
+
 def prepare_dataset_splits(
         df: pd.DataFrame, n_train: int, n_test: int, n_val: int = 0, rng_seed=RNG_SEED,
 ):
-    # Add attention head empty output here
     shuffled_df = df.sample(frac=1, random_state=rng_seed)
     train_df = shuffled_df.iloc[:n_train]
     test_df = shuffled_df.iloc[n_train: n_test+n_train]
@@ -59,12 +60,12 @@ def prepare_dataset_splits(
 
 
 class HatexplainDataset:
-    def __init__(self, initial_df: pd.DataFrame, p_test: float, p_val: float = 0.0):
+    def __init__(self, initial_df: pd.DataFrame, p_test: float, p_val: float = 0.0, batch_size: int=32):
         """
 
         :rtype: object
         """
-        self.batch_size = BATCH_SIZE
+        self.batch_size = batch_size
         self.initial_dataframe = initial_df
         self.dataset_size = len(self.initial_dataframe)
         self.token_width = len(initial_df["input_ids"][0])
@@ -89,10 +90,6 @@ class HatexplainDataset:
             self.val_df = None
         else:
             self.val_df = data_splits[2]
-
-        print(f"LENGTH OF TRAIN: {len(self.train_df)}")
-        print(f"LENGTH OF TEST: {len(self.test_df)}")
-        print(f"BATCH N: {self.train_batches, self.test_batches}")
 
     def get_train_generator(self) -> Generator:
         return dataset_generator(self.train_df)
@@ -120,8 +117,3 @@ class HatexplainDataset:
             return [self.train_df, self.test_df]
         return [self.train_df, self.test_df, self.val_df]
 
-
-def entropy(p):
-    plogp = p * tf.math.log(p)
-    plogp[p == 0] = 0
-    return tf.math.cumsum(plogp)

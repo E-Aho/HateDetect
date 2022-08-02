@@ -10,7 +10,7 @@ from keras.losses import Loss
 def entropy_of_tensor(t: tf.Tensor):
     t = tf.boolean_mask(t, tf.math.greater(t, tf.zeros_like(t)))  # filter out zero values
     tlogt = t * tf.math.log(t)
-    return - tf.math.reduce_sum(tlogt, axis=0)
+    return - tf.math.reduce_mean(tlogt, axis=0)
 
 
 @tf.function
@@ -38,16 +38,20 @@ class AttentionEntropyLoss(Loss):
     def __init__(self, phi: float):
         super().__init__()
         self.phi = phi
-        self.loss_fn = tf.keras.losses.CategoricalCrossentropy()
+        self.loss_fn = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 
     def call(self, y_true, y_pred):
         predicted_labels, attentions, attention_mask = y_pred.output_0, y_pred.output_1, y_pred.output_2
+        # print("PRED", predicted_labels)
+        # print("TRUE", y_true)
         cat_loss = self.loss_fn(y_true, predicted_labels)
 
         if self.phi is None:
+            # print("LOSS", tf.reduce_mean(cat_loss))
             return tf.reduce_mean(cat_loss)
 
         entropy_loss = calculate_masked_entropy(attentions, attention_mask)
+        # print("LOSS: ", tf.reduce_mean(cat_loss + (self.phi * entropy_loss)))
         return tf.reduce_mean(cat_loss + (self.phi * entropy_loss))
 
 
@@ -56,7 +60,7 @@ class CompatibleMetric(tf.keras.metrics.MeanMetricWrapper):
     model """
     def __init__(self, metric_fn: keras.metrics, name: Union[str, property], **kwargs):
         self.metric = metric_fn
-        super().__init__(
-            lambda y_true, y_pred: self.metric(y_true, y_pred.output_0),
-            name=name, **kwargs
-        )
+        super().__init__(self.metric_func, name=name)
+
+    def metric_func(self, y_0, y_1):
+        return self.metric(y_0, y_1.output_0)
