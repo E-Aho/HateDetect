@@ -5,8 +5,8 @@ from transformers import (
 )
 
 
-def tokenize_hatexplain(dataset: pd.DataFrame):
-    tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+def tokenize_hatexplain(dataset: pd.DataFrame, tokenizer: str = "roberta-base"):
+    tokenizer = RobertaTokenizer.from_pretrained(tokenizer)
     all_strs = dataset["text"].tolist()
     tokenized_strs = tokenizer(all_strs, truncation=False, padding=True)
     dataset["input_ids"] = tokenized_strs["input_ids"]

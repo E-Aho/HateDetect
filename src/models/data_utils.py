@@ -6,6 +6,7 @@ import pandas as pd
 import tensorflow as tf
 
 from src.models import RNG_SEED
+from src.models.simplified_tokenizers import tokenize_hatexplain
 
 BATCH_SIZE = 64
 P_TEST = 0.3
@@ -66,11 +67,17 @@ class HatexplainDataset:
             p_val: float = 0.0,
             batch_size: int=32,
             rng_seed: int = RNG_SEED,
+            init_from_tokenizer: str = None
      ):
         """
 
         :rtype: object
         """
+
+        if init_from_tokenizer is not None:
+            initial_df.drop(["input_ids", "attention_mask"])
+            initial_df = tokenize_hatexplain(initial_df, tokenizer=init_from_tokenizer)
+
         self.batch_size = batch_size
         self.initial_dataframe = initial_df
         self.dataset_size = len(self.initial_dataframe)

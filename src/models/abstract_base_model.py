@@ -8,6 +8,7 @@ from typing import List, Union
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+# import torch
 
 from transformers import (
     RobertaTokenizer,
@@ -32,6 +33,8 @@ class AbstractModel(ABC):
             save_path: Path,
             tokenizer_name: str = None,
             model_config: BertConfig = None,
+            from_pt: bool = False,
+
     ):
         if tokenizer_name is None:
             tokenizer_name = model_name
@@ -41,7 +44,6 @@ class AbstractModel(ABC):
                 model_name
             )
 
-
         self.tokenizer = RobertaTokenizer.from_pretrained(
             tokenizer_name
         )
@@ -49,6 +51,7 @@ class AbstractModel(ABC):
         self.bert = TFRobertaModel.from_pretrained(
             model_name,
             config=model_config,
+            from_pt=from_pt
         )
         self.input_shape = input_shape
         self.output_shape = output_shape
@@ -64,7 +67,7 @@ class AbstractModel(ABC):
             GarbageCollectCallback(),
             tf.keras.callbacks.EarlyStopping(
                 monitor="val_categorical_accuracy",
-                patience=3,
+                patience=2,
                 restore_best_weights=True,
             )
         ]

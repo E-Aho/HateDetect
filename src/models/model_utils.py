@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 
@@ -25,6 +26,13 @@ class PackedTensor(tf.experimental.BatchableExtensionType):
         # to stop Keras from complaining
         shape: tf.TensorShape = tf.constant(1.).shape
         dtype: tf.DType = tf.constant(1.).dtype
+
+    def numpy(self):
+        return np.column_stack([
+            self.output_0.numpy(),
+            self.output_1.numpy(),
+            self.output_2.numpy(),
+        ])
 
 
 class PackingLayer(tf.keras.layers.Layer):

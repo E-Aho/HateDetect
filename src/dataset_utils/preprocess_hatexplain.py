@@ -3,8 +3,8 @@ from collections import defaultdict
 import pandas as pd
 
 from datasets.hatexplain import hatexplain_json_path, dataset_labels, raw_hatexplain_path, processed_hatexplain_path, \
-    hatexplain_dataset_path
-
+    hatexplain_dataset_path, hatexplain_twitter_roberta_path, hatexplain_emotion_path, \
+    hatexplain_sentiment_path
 
 from src.dataset_utils.string_preprocessing import preprocess_text
 from src.models.simplified_tokenizers import tokenize_hatexplain
@@ -151,5 +151,16 @@ if __name__ == "__main__":
     clean_df.to_csv(processed_hatexplain_path)
 
     final_df = prepare_hatexplain_dataset(clean_df)
-    dataset = tokenize_hatexplain(final_df)
-    dataset.to_parquet(hatexplain_dataset_path)
+
+    # Tokenize for main base models
+    roberta_ds = tokenize_hatexplain(final_df)
+    roberta_ds.to_parquet(hatexplain_dataset_path)
+
+    twitter_roberta_base_ds = tokenize_hatexplain(final_df, "cardiffnlp/twitter-roberta-base-jun2022")
+    emotion_ds = tokenize_hatexplain(final_df, "cardiffnlp/twitter-roberta-base-emotion")
+    sentiment_ds = tokenize_hatexplain(final_df, "cardiffnlp/twitter-roberta-base-sentiment-latest")
+
+    twitter_roberta_base_ds.to_parquet(hatexplain_twitter_roberta_path)
+    emotion_ds.to_parquet(hatexplain_emotion_path)
+    sentiment_ds.to_parquet(hatexplain_sentiment_path)
+

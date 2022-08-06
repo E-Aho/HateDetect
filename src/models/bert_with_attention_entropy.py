@@ -1,21 +1,19 @@
-from typing import Union
+from pathlib import Path
+from typing import Union, Generator
 
 import keras.metrics
+import numpy as np
 import pandas as pd
 import tensorflow as tf
 from transformers import RobertaConfig
 
-from datasets.hatexplain import hatexplain_dataset_path
+from datasets.hatexplain import hatexplain_dataset_path, hatexplain_twitter_roberta_path
 from src.models import BASE_MODEL_MODEL_PATH
 from src.models.abstract_base_model import AbstractModel
 from src.models.attention_entropy_loss import AttentionEntropyLoss, CompatibleMetric
 from src.models.constants import EPOCHS, HEAD_LEARNING_RATE, FINE_TUNE_LEARNING_RATE, PHI, DROPOUT_RATE
 from src.models.data_utils import HatexplainDataset, BATCH_SIZE
 from src.models.model_utils import PackingLayer
-
-learning_rate = 100
-n_head = 12
-max_token_len = 113
 
 
 class BertModelWithAttentionEntropy(AbstractModel):
@@ -29,8 +27,11 @@ class BertModelWithAttentionEntropy(AbstractModel):
             phi: float = PHI,
             batch_size: int = BATCH_SIZE,
             dropout_rate: float = DROPOUT_RATE,
+            base_model_name: str = "roberta-base",
+            from_pt: bool = False,
+            save_path: Path = BASE_MODEL_MODEL_PATH,
     ):
-        model_pretrained_name = "roberta-base"
+        model_pretrained_name = base_model_name
         save_path = BASE_MODEL_MODEL_PATH
         self.dropout_rate = dropout_rate
         self.batch_size = batch_size
@@ -51,6 +52,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
             model_name=model_pretrained_name,
             model_config=model_config,
             save_path=save_path,
+            from_pt=from_pt,
         )
 
         self.loss = AttentionEntropyLoss(phi=0.2)
@@ -89,10 +91,11 @@ class BertModelWithAttentionEntropy(AbstractModel):
 
     def fine_tune_and_train_mdl(
             self, dataset: HatexplainDataset,
-            custom_callback,
-    ):
+            custom_callback=None,
+    ) -> tf.keras.Model:
         model = self.model
-        self.callbacks.append(custom_callback)
+        if custom_callback is not None:
+            self.callbacks.append(custom_callback)
 
         train_data = dataset.get_train_generator()
         test_data = dataset.get_test_generator()
@@ -162,7 +165,7 @@ if __name__ == "__main__":
     phi = 0.2
 
     hatexplain_dataset = HatexplainDataset(
-        pd.read_parquet(hatexplain_dataset_path), p_test=0.2
+        pd.read_parquet(hatexplain_twitter_roberta_path), p_test=0.2
 
     )
 
@@ -174,8 +177,18 @@ if __name__ == "__main__":
         epochs=n_epochs,
         phi=phi,
         dropout_rate=0.1,
+        base_model_name="cardiffnlp/twitter-roberta-base-jun2022",
+        from_pt=True,
     )
 
     trained_mdl = base_mdl.fine_tune_and_train_mdl(
         dataset=hatexplain_dataset,
     )
+
+def predict_from_ear_model(x: Generator, steps: int, model: tf.keras.Model) -> np.ndarray:
+    y_out = []
+    for _ in range(steps):
+        x_batch = next(x)[0]
+        out = model(x_batch)
+        y_out.append(out.numpy())
+    return np.concatenate(y_out)
