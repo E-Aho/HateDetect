@@ -11,7 +11,8 @@ import wandb
 from datasets.hatexplain import hatexplain_dataset_path, hatexplain_twitter_roberta_path, hatexplain_sentiment_path, \
     hatexplain_emotion_path
 from src.models import RNG_SEED, BASE_MODEL_MODEL_PATH, TWITTER_MODEL_PATH, SENTIMENT_MODEL_PATH, EMOTION_MODEL_PATH
-from src.models.bert_with_attention_entropy import BertModelWithAttentionEntropy, predict_from_ear_model
+from src.models.bert_with_attention_entropy import BertModelWithAttentionEntropy
+from src.models.model_utils import predict_from_ear_model
 from src.models.constants import WANDB_ENTROPY_COMPARE_PROJECT
 from src.models.data_utils import HatexplainDataset
 

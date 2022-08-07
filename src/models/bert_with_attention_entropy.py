@@ -1,13 +1,11 @@
 from pathlib import Path
-from typing import Union, Generator
 
 import keras.metrics
-import numpy as np
 import pandas as pd
 import tensorflow as tf
 from transformers import RobertaConfig
 
-from datasets.hatexplain import hatexplain_dataset_path, hatexplain_twitter_roberta_path
+from datasets.hatexplain import hatexplain_twitter_roberta_path
 from src.models import BASE_MODEL_MODEL_PATH
 from src.models.abstract_base_model import AbstractModel
 from src.models.attention_entropy_loss import AttentionEntropyLoss, CompatibleMetric
@@ -186,10 +184,4 @@ if __name__ == "__main__":
         dataset=hatexplain_dataset,
     )
 
-def predict_from_ear_model(x: Generator, steps: int, model: tf.keras.Model) -> np.ndarray:
-    y_out = []
-    for _ in range(steps):
-        x_batch = next(x)[0]
-        out = model(x_batch)
-        y_out.append(out.numpy())
-    return np.concatenate(y_out)
+
