@@ -93,6 +93,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
             self, dataset: HatexplainDataset,
             custom_callback=None,
     ) -> tf.keras.Model:
+
         model = self.model
         if custom_callback is not None:
             self.callbacks.append(custom_callback)
@@ -114,7 +115,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
         for layer_i in range(5, len(model.layers)):
             model.layers[layer_i].trainable = True
 
-        print("\n\n~~ Training ~~\n\n")
+        print("\n\n~~ Training Head ~~\n\n")
 
         model.fit(
             train_data,
@@ -140,7 +141,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
         for layer in model.layers:
             layer.trainable = True
 
-        print("\n\n--Done training head, fine tuning full model--\n\n")
+        print("\n\n-- Done training head, fine tuning full model --\n\n")
         model.fit(
             train_data,
             validation_data=test_data,

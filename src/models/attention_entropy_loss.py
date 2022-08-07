@@ -42,16 +42,12 @@ class AttentionEntropyLoss(Loss):
 
     def call(self, y_true, y_pred):
         predicted_labels, attentions, attention_mask = y_pred.output_0, y_pred.output_1, y_pred.output_2
-        # print("PRED", predicted_labels)
-        # print("TRUE", y_true)
         cat_loss = self.loss_fn(y_true, predicted_labels)
 
         if self.phi is None:
-            # print("LOSS", tf.reduce_mean(cat_loss))
             return tf.reduce_mean(cat_loss)
 
         entropy_loss = calculate_masked_entropy(attentions, attention_mask)
-        # print("LOSS: ", tf.reduce_mean(cat_loss + (self.phi * entropy_loss)))
         return tf.reduce_mean(cat_loss + (self.phi * entropy_loss))
 
 
