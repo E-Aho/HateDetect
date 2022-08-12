@@ -96,7 +96,7 @@ def train_mdl(mdl: AbstractModel, dataset: HatexplainDataset, learning_rate: flo
 
 
 def fine_tune_and_train():
-    pass  # todo
+    pass
 
 
 def join_predictions_to_source_data(data: pd.DataFrame, predictions: np.ndarray) -> pd.DataFrame:

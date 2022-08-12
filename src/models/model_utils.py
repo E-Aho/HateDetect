@@ -68,19 +68,20 @@ def predict_from_ear_model(x: Generator, steps: int, model: tf.keras.Model) -> p
     mask_in = []
     for _ in range(steps):
         x_batch, y_batch = next(x)
+        token_batch, mask_batch = x_batch
         out = model(x_batch)
         values = out.get_values()
         pred_out.append(values[0])
         attn_out.append(values[1])
-        y_in.extend([y.numpy() for y in y_batch])
-        for r in x_batch:
-            tkn_in.append(r[0].numpy())
-            mask_in.append(r[1].numpy())
+        y_in.append(y_batch)
+        tkn_in.append(token_batch)
+        mask_in.append(mask_batch)
+
     pred_out = np.concatenate(pred_out).tolist()
     attn_out = np.concatenate(attn_out).tolist()
-    tkn_out = np.array(tkn_in).tolist()
-    mask_out = np.array(mask_in).tolist()
-    y_ret = np.array(y_in).tolist()
+    tkn_out = np.concatenate(tkn_in).tolist()
+    mask_out = np.concatenate(mask_in).tolist()
+    y_ret = np.concatenate(y_in).tolist()
 
     out_df = pd.DataFrame({
         "tokens": tkn_out,

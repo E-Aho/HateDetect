@@ -1,4 +1,5 @@
 WANDB_ENTROPY_COMPARE_PROJECT = "hate-detect-compare-EAR"
+WANDB_MODEL_COMPARE_PROJECT = "hate-detect-model-compare"
 
 EPOCHS = 20
 HEAD_LEARNING_RATE = 1e-3

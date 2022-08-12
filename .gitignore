@@ -281,6 +281,6 @@ datasets/*/*.json
 *_df*.csv
 slangdict.pickle
 
-
+results/*_full.parquet
 
 

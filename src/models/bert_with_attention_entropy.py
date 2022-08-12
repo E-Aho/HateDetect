@@ -53,7 +53,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
             from_pt=from_pt,
         )
 
-        self.loss = AttentionEntropyLoss(phi=0.2)
+        self.loss = AttentionEntropyLoss(phi=0.2)  # gets overwritten during training, just here as placeholder
         self.metrics = [CompatibleMetric(metric_fn=keras.metrics.categorical_accuracy, name="categorical_accuracy")]
         self.optimizer = self.get_opt
 
@@ -78,7 +78,7 @@ class BertModelWithAttentionEntropy(AbstractModel):
 
         dropout = tf.keras.layers.Dropout(self.dropout_rate)(cls_token_out)
         hidden = tf.keras.layers.Dense(64, activation="sigmoid")(dropout)
-        output = tf.keras.layers.Dense(output_shape, activation="softmax")(hidden)  # 3 for non-split training
+        output = tf.keras.layers.Dense(output_shape, activation="softmax")(hidden)
 
         packed_layer = PackingLayer()(
             [output, head_averaged_attentions, input_attention_mask]
