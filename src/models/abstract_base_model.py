@@ -3,7 +3,7 @@ import gc
 from abc import ABC
 from collections import Generator
 from pathlib import Path
-from typing import List, Union
+from typing import List
 
 import numpy as np
 import pandas as pd

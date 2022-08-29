@@ -1,7 +1,6 @@
 from typing import Union
 
 import keras.metrics
-import numpy as np
 import tensorflow as tf
 from keras.losses import Loss
 

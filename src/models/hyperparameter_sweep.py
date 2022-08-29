@@ -1,11 +1,7 @@
-import argparse
 import random
-from math import exp, log
 from pathlib import Path
-from typing import Tuple
 
 import keras.callbacks
-import wakepy
 from keras import backend as K
 import pandas as pd
 import wandb
@@ -14,7 +10,6 @@ from datasets.hatexplain import hatexplain_dataset_path, hatexplain_twitter_robe
     hatexplain_emotion_path
 from src.models import RNG_SEED, BASE_MODEL_MODEL_PATH, TWITTER_MODEL_PATH, SENTIMENT_MODEL_PATH, EMOTION_MODEL_PATH
 from src.models.bert_with_attention_entropy import BertModelWithAttentionEntropy
-from src.models.model_utils import predict_from_ear_model
 from src.models.constants import WANDB_ENTROPY_COMPARE_PROJECT, WANDB_MODEL_COMPARE_PROJECT
 from src.models.data_utils import HatexplainDataset
 
@@ -144,13 +139,13 @@ def sweep_run():
                 "fine_tune_learning_rate": {
                     "distribution": "log_uniform_values",
                     "min": 1e-4,
-                    "max": 1e-2,
+                    "max": 1e-3,
                     # "values": [1e-5, 1e-4, 1e-3]
                 },
                 "phi": {
                     "distribution": "log_uniform_values",  # To test this for non-EAR, set phi to None
                     "min": 1e-3,
-                    "max": 2e-2
+                    "max": 3e-2
                     # "values": [1e-2, 3e-2, 1e-1]
                 },
                 "batch_size": {
@@ -200,38 +195,17 @@ def sweep_run():
         model_var="emotion"
     )
 
-    # wandb.login(key="946c560dfb68fe3e05de34ebb4da31536d1fe7bf")
-    # sweep_id = wandb.sweep(base_sweep_config, project=WANDB_ENTROPY_COMPARE_PROJECT)
-    # wandb.agent(sweep_id="t4ozj0jb", function=train)
-
-    # no_ear_sweep_id = wandb.sweep(no_ear_sweep_config, project=WANDB_ENTROPY_COMPARE_PROJECT)
-    # wandb.agent(sweep_id=no_ear_sweep_id, function=train)
-
-
     base_baesian_id = wandb.sweep(base_sweep_config, project=WANDB_MODEL_COMPARE_PROJECT)  # dg0eux06
-    base_baesian_id = "dg0eux06"
-
     twitter_sweep_id = wandb.sweep(twitter_sweep_config, project=WANDB_MODEL_COMPARE_PROJECT)  # rizh7f8s
     sentiment_sweep_id = wandb.sweep(sentiment_sweep_config, project=WANDB_MODEL_COMPARE_PROJECT)  # lviwc9u6
     emotion_sweep_config = wandb.sweep(emotion_sweep_config, project=WANDB_MODEL_COMPARE_PROJECT)  # xfxlwe2d
 
-    twitter_sweep_id = "rizh7f8s"
-    sentiment_sweep_id = "lviwc9u6"
-    emotion_sweep_config = "xfxlwe2d"
-
-    run_count = 1
-    # wandb.agent(sweep_id=base_baesian_id, function=train, count=run_count)
+    run_count = 10
+    wandb.agent(sweep_id=base_baesian_id, function=train, count=run_count)
     wandb.agent(sweep_id=twitter_sweep_id, function=train, count=run_count)
-    # wandb.agent(sweep_id=sentiment_sweep_id, function=train, count=run_count)
-    # wandb.agent(sweep_id=emotion_sweep_config, function=train, count=run_count)
-
-    run_count = 8
-    # wandb.agent(sweep_id=base_baesian_id, function=train, count=run_count)
-    # wandb.agent(sweep_id=twitter_sweep_id, function=train, count=run_count)
     wandb.agent(sweep_id=sentiment_sweep_id, function=train, count=run_count)
     wandb.agent(sweep_id=emotion_sweep_config, function=train, count=run_count)
 
 
 if __name__ == "__main__":
-    with wakepy.keepawake(keep_screen_awake=False):
-        sweep_run()
+    sweep_run()

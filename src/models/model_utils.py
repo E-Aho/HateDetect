@@ -10,6 +10,14 @@ import tensorflow as tf
 
 
 class PackedTensor(tf.experimental.BatchableExtensionType):
+    """Extension of a tensor that contains 3 sub-tensors of different shapes.
+    Used to return 3 different items from the model, so that a normal loss function can be used as part of the model
+
+    In this project, the 3 types are just
+    1) Output tokens
+    2) Attention tensor
+    3) Attention mask
+    """
     __name__ = 'extension_type_colab.PackedTensor'
 
     output_0: tf.Tensor

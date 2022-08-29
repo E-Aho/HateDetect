@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+from datasets.hatexplain import hatexplain_dataset_path
 from src.models import RNG_SEED
 from src.models.simplified_tokenizers import tokenize_hatexplain
 
