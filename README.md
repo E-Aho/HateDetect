@@ -5,7 +5,7 @@
 #### As part of this project, files which contain hateful words or terms are marked with `CW_` (for "content warning") as part of the title, and contain a forward indicating the presence of hateful language.
 #### Files beginning with `CW_` (or `test_CW_` in the case of pytest files) contain hateful slurs and terms within them.
 
-The main project is viewable in [The PDF file in the main repo]()
+[The written report for the project is viewable here.](https://github.com/E-Aho/HateDetect/blob/main/MainReport.pdf)
 
 ## Running the code
 ### Prerequesites
