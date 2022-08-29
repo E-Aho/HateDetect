@@ -14,7 +14,7 @@ from src.dataset_utils.CW_constants import BASE_AFRICAN_SLUR, BASE_ASIAN_SLUR, B
     BASE_HISPANIC_SLUR, BASE_HOMOSEXUAL_SLUR, BASE_JEWISH_SLUR, BASE_MUSLIM_SLUR, BASE_WOMAN_SLUR, BASE_REFUGEE_SLUR
 from src.dataset_utils.preprocess_hatexplain import preprocess_hatexplain_df
 
-from src.dataset_utils.string_preprocessing import clean_text, preprocess_text, check_is_english
+from src.dataset_utils.string_preprocessing import clean_text, preprocess_text
 
 
 class TestCleanText:
@@ -119,30 +119,6 @@ class TestPreprocessText:
     def test_for_emoji_works_as_expected(self, test_input, expected):
         assert preprocess_text(test_input) == expected.split(" ")
 
-
-class TestCheckIsEnglish:
-
-    @pytest.mark.parametrize("test_input", [
-            "hello this is an english string",
-            "hello i am in english"
-        ]
-    )
-    def test_for_normal_strings_returns_as_expected(self, test_input):
-        prediction, probability = check_is_english(test_input)
-
-        assert prediction == "en"
-        assert probability > 0.5
-
-
-    @pytest.mark.parametrize("test_input", [
-            "bonjour je suis francais",
-            "salut ce nest pas anglais"
-        ]
-    )
-    def test_for_non_english_works_as_expected(self, test_input):
-        prediction, probability = check_is_english(test_input)
-
-        assert prediction != "en"
 
 
 class TestIntegration:
