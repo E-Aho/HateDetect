@@ -18,7 +18,6 @@ ekphrasis>=0.5.4
 symspellpy>=6.7.6
 scipy>=1.8.1
 emoji==1.7.0
-sklearn>=0.0
 pyarrow==8.0.0
 
 # Libraries used in testing
